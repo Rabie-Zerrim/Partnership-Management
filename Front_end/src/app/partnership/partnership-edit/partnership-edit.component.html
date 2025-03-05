@@ -1,0 +1,54 @@
+<div class="partnership-edit-container">
+  <h2>{{ partnershipId ? 'Edit Partnership' : 'Add Partnership' }}</h2>
+
+  <form (ngSubmit)="savePartnership()">
+    <div class="form-group">
+      <label for="partnershipStatus">Status</label>
+      <select
+        id="partnershipStatus"
+        [(ngModel)]="partnership.partnershipStatus"
+        name="partnershipStatus"
+        class="form-control"
+        required
+      >
+        <option value="" disabled>Select Status</option>
+        <option value="active">Active</option>
+        <option value="pending">Pending</option>
+        <option value="completed">Completed</option>
+        <option value="terminated">Terminated</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="entreprise">Entreprise</label>
+      <input
+        type="text"
+        id="entreprise"
+        [(ngModel)]="partnership.entreprise"
+        name="entreprise"
+        class="form-control"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="proposals">Proposal</label>
+      <input
+        type="text"
+        id="proposals"
+        [(ngModel)]="partnership.proposals"
+        name="proposals"
+        class="form-control"
+        required
+      />
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      {{ partnershipId ? 'Update' : 'Save' }}
+    </button>
+    <button type="button" class="btn btn-secondary" (click)="cancel()">
+      Cancel
+    </button>
+  </form>
+</div>

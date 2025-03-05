@@ -1,0 +1,139 @@
+<div class="entreprise-container">
+    <h2>Entreprises</h2>
+  
+    <!-- Add Entreprise Button -->
+    <button class="btn-add" (click)="navigateToAdd()">Add New Entreprise</button>  
+    <!-- Loading Spinner -->
+    <div *ngIf="loading" class="loading">
+      <ngx-spinner
+        bdColor="rgba(0, 0, 0, 0.8)"
+        size="medium"
+        color="#fff"
+        type="ball-clip-rotate"
+        [fullScreen]="false"
+      >
+        <p style="color: white">Loading...</p>
+      </ngx-spinner>
+    </div>
+  
+    <!-- Error Message -->
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+  
+    <!-- List of Entreprises -->
+    <div class="entreprise-list">
+      <ul>
+        <li *ngFor="let entreprise of entreprises">
+          <!-- Display entreprise details -->
+          <div *ngIf="editingId !== entreprise.idEntreprise">
+            {{ entreprise.nameEntreprise }} - {{ entreprise.addressEntreprise }}
+            <button
+              class="btn btn-primary"
+              (click)="enterEditMode(entreprise)"
+            >
+              Edit
+            </button>
+            <button
+              class="btn btn-danger"
+              (click)="deleteEntreprise(entreprise.idEntreprise)"
+              [disabled]="deletingId === entreprise.idEntreprise"
+            >
+              <span *ngIf="deletingId !== entreprise.idEntreprise">Delete</span>
+              <span *ngIf="deletingId === entreprise.idEntreprise">
+                <i class="fas fa-spinner fa-spin"></i> Deleting...
+              </span>
+            </button>
+          </div>
+  
+          <!-- Edit Form -->
+          <div *ngIf="editingId === entreprise.idEntreprise">
+            <form [formGroup]="editForm" (ngSubmit)="onSubmit()" class="edit-form">
+              <!-- Name Field -->
+              <div class="form-group">
+                <label for="nameEntreprise">Name:</label>
+                <input
+                  type="text"
+                  id="nameEntreprise"
+                  formControlName="nameEntreprise"
+                  placeholder="Enter entreprise name"
+                />
+                <div *ngIf="editForm.get('nameEntreprise')?.invalid && editForm.get('nameEntreprise')?.touched"
+                     class="error-message">
+                  Name is required.
+                </div>
+              </div>
+  
+              <!-- Address Field -->
+              <div class="form-group">
+                <label for="addressEntreprise">Address:</label>
+                <input
+                  type="text"
+                  id="addressEntreprise"
+                  formControlName="addressEntreprise"
+                  placeholder="Enter entreprise address"
+                />
+                <div *ngIf="editForm.get('addressEntreprise')?.invalid && editForm.get('addressEntreprise')?.touched"
+                     class="error-message">
+                  Address is required.
+                </div>
+              </div>
+  
+              <!-- Phone Field -->
+              <div class="form-group">
+                <label for="phoneEntreprise">Phone:</label>
+                <input
+                  type="text"
+                  id="phoneEntreprise"
+                  formControlName="phoneEntreprise"
+                  placeholder="Enter entreprise phone"
+                />
+                <div *ngIf="editForm.get('phoneEntreprise')?.invalid && editForm.get('phoneEntreprise')?.touched"
+                     class="error-message">
+                  Phone is required.
+                </div>
+              </div>
+  
+              <!-- Email Field -->
+              <div class="form-group">
+                <label for="emailEntreprise">Email:</label>
+                <input
+                  type="email"
+                  id="emailEntreprise"
+                  formControlName="emailEntreprise"
+                  placeholder="Enter entreprise email"
+                />
+                <div *ngIf="editForm.get('emailEntreprise')?.invalid && editForm.get('emailEntreprise')?.touched"
+                     class="error-message">
+                  A valid email is required.
+                </div>
+              </div>
+  
+              <!-- Description Field -->
+              <div class="form-group">
+                <label for="descriptionEntreprise">Description:</label>
+                <textarea
+                  id="descriptionEntreprise"
+                  formControlName="descriptionEntreprise"
+                  placeholder="Enter entreprise description"
+                ></textarea>
+              </div>
+  
+              <!-- Form Actions -->
+              <div class="form-actions">
+                <button type="submit" class="btn-submit" [disabled]="editForm.invalid || loading">
+                  {{ loading ? 'Updating...' : 'Update' }}
+                </button>
+                <button type="button" class="btn-cancel" (click)="cancelEditMode()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </li>
+      </ul>
+    </div>
+  
+    <!-- No Data Message -->
+    <div *ngIf="!loading && entreprises.length === 0" class="no-data">
+      No entreprises found.
+    </div>
+  </div>

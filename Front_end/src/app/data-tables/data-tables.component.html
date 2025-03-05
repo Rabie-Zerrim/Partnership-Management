@@ -1,0 +1,79 @@
+<!-- Filter Datatables -->
+<section id="ngx-datatable-filter">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title">Partnerships</h4>
+        </div>
+        <div class="card-content">
+          <div class="card-body">
+
+            <!-- Search Filter -->
+            <fieldset class="form-group">
+              <label for="ngx-filter-ref">Search:
+                <input id="ngx-filter-ref" class="form-control form-control-sm d-inline-block width-200" type="text"
+                  placeholder="Filter by Status..." (keyup)="filterUpdate($event)" />
+              </label>
+            </fieldset>
+
+            <!-- Add Partnership Button -->
+            <button class="btn btn-primary" (click)="openAddPartnershipForm()">Add Partnership</button>
+
+            <!-- ngx-datatable -->
+            <ngx-datatable class="bootstrap core-bootstrap" [columns]="columns" [columnMode]="ColumnMode.force"
+              [headerHeight]="50" [footerHeight]="50" rowHeight="auto" [limit]="4" [rows]="filteredPartnerships"
+              [scrollbarH]="true" [count]="partnerships.length" [(offset)]="offset">
+
+              <ngx-datatable-column name="ID" prop="idPartnership" [width]="100"></ngx-datatable-column>
+              <ngx-datatable-column name="Status" prop="partnershipStatus" [width]="150">
+                <ng-template let-status="value" ngx-datatable-cell-template>
+                  <div class="badge badge-pill"
+                    [ngClass]="{
+                      'bg-light-primary': status == 'Active', 
+                      'bg-light-success': status == 'Completed',
+                      'bg-light-danger': status == 'Rejected',
+                      'bg-light-warning': status == 'Pending',
+                      'bg-light-info': status == 'Applied'
+                    }">
+                    {{ status }}
+                  </div>
+                </ng-template>
+              </ngx-datatable-column>
+              
+              <ngx-datatable-column name="Actions" [width]="100">
+                <ng-template ngx-datatable-cell-template let-row="row">
+                  <i class="ft-edit text-primary cursor-pointer" (click)="navigateToEdit(row.idPartnership)"></i>
+                  <i class="ft-trash-2 text-danger cursor-pointer" (click)="deletePartnership(row.idPartnership)"></i>
+                </ng-template>
+              </ngx-datatable-column>
+
+            </ngx-datatable>
+            <!-- ngx-datatable -->
+
+            <!-- Partnership Form (Only Show When Adding) -->
+            <!-- Partnership Form (Only Show When Adding) -->
+<!-- Add Partnership Form -->
+<div *ngIf="showAddForm">
+  <form (ngSubmit)="addPartnership()" #partnershipForm="ngForm">
+    <div class="form-group">
+      <label for="partnershipStatus">Partnership Status</label>
+      <input type="text" class="form-control" id="partnershipStatus"
+        [(ngModel)]="newPartnership.partnershipStatus" name="partnershipStatus" required />
+    </div>
+    <button type="submit" class="btn btn-success" [disabled]="!partnershipForm.valid">Add</button>
+    <button type="button" class="btn btn-danger" (click)="cancelAddPartnership()">Cancel</button>
+  </form>
+</div>
+
+<!--/ Partnership Form -->
+
+            <!--/ Partnership Form -->
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!--/ Filter Datatables -->
