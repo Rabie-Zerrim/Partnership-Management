@@ -1,6 +1,8 @@
 package com.partnershipmanagement.Services;
 
+import com.partnershipmanagement.Entities.Partnership;
 import com.partnershipmanagement.Entities.Proposal;
+import com.partnershipmanagement.Repositories.PartnershipRepository;
 import com.partnershipmanagement.Repositories.ProposalRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,8 @@ public class ProposalService {
 
     @Autowired
     private ProposalRepository proposalRepository;
+    private PartnershipRepository partnershipRepository;
+
 
     // Create a new proposal
     public Proposal createProposal(Proposal proposal) {
@@ -43,7 +47,6 @@ public class ProposalService {
         proposal.setPlannedAmount(proposalDetails.getPlannedAmount());
         proposal.setProposalStatus(proposalDetails.getProposalStatus());
         proposal.setProposalType(proposalDetails.getProposalType());
-        proposal.setUser(proposalDetails.getUser());
 
         return proposalRepository.save(proposal);
     }
@@ -71,3 +74,4 @@ public class ProposalService {
         System.out.println("Remaining proposals: " + remainingProposals);
     }
 }
+

@@ -1,5 +1,6 @@
 package com.partnershipmanagement.Repositories;
 
+import com.partnershipmanagement.Entities.Entreprise;
 import com.partnershipmanagement.Entities.Partnership;
 import com.partnershipmanagement.Entities.PartnershipStatus;
 import com.partnershipmanagement.Entities.Proposal;
@@ -9,9 +10,12 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 public interface PartnershipRepository extends JpaRepository<Partnership, Integer> {
 
+    @Query("SELECT e FROM Entreprise e WHERE e.nameEntreprise = :nameEntreprise")
+    Optional<Entreprise> findByNameEntreprise(@Param("nameEntreprise") String nameEntreprise);
     @Query("SELECT p FROM Partnership p WHERE p.proposals.endDate > :currentDate")
     List<Partnership> findByEndDateAfter(@Param("currentDate") Date currentDate);
 
@@ -23,4 +27,8 @@ public interface PartnershipRepository extends JpaRepository<Partnership, Intege
 
     @Query("SELECT p FROM Partnership p WHERE p.proposals = :proposal")
     List<Partnership> findByProposal(@Param("proposal") Proposal proposal);
+
+    List<Partnership> findByEntrepriseIdEntreprise(int idEntreprise);
+
+
 }

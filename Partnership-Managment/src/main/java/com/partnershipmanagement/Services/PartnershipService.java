@@ -14,14 +14,13 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -36,12 +35,53 @@ public class PartnershipService implements IPartnershipService {
     @Autowired
     private ProposalRepository proposalRepository;
 
+    // Validate Partnership Input
+    public void validatePartnership(Partnership partnership) {
+        if (partnership.getEntreprise() == null) {
+            throw new IllegalArgumentException("Entreprise cannot be null");
+        }
 
+        if (partnership.getProposals() == null) {
+            throw new IllegalArgumentException("Proposal cannot be null");
+        }
 
-    // Add these methods to your existing PartnershipService class
+        if (partnership.getPartnershipStatus() == null) {
+            throw new IllegalArgumentException("Partnership status cannot be null");
+        }
+
+        // Check start and end date logic
+        if (partnership.getProposals().getStartDate() == null || partnership.getProposals().getEndDate() == null) {
+            throw new IllegalArgumentException("Start and End dates must be provided");
+        }
+
+        if (partnership.getProposals().getEndDate().before(partnership.getProposals().getStartDate())) {
+            throw new IllegalArgumentException("End date cannot be before the start date");
+        }
+
+        // Optional: Ensure the planned amount is greater than zero
+        if (partnership.getProposals().getPlannedAmount() <= 0) {
+            throw new IllegalArgumentException("Planned amount must be greater than zero");
+        }
+    }
 
     // Create a new partnership
     public Partnership createPartnership(Partnership partnership) {
+        validatePartnership(partnership); // Validate the partnership before saving
+        return partnershipRepository.save(partnership);
+    }
+
+    public Partnership addPartnershipByEntrepriseName(String nameEntreprise, Proposal proposal) {
+        // Find entreprise by name
+        Entreprise entreprise = entrepriseRepository.findByName(nameEntreprise);
+        // Save proposal (if needed)
+        Proposal savedProposal = proposalRepository.save(proposal);
+
+        // Create Partnership
+        Partnership partnership = new Partnership();
+        partnership.setEntreprise(entreprise);
+        partnership.setProposals(savedProposal);
+        partnership.setPartnershipStatus(PartnershipStatus.pending); // Default status
+
         return partnershipRepository.save(partnership);
     }
 
@@ -61,6 +101,8 @@ public class PartnershipService implements IPartnershipService {
         Partnership existingPartnership = partnershipRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Partnership not found with ID: " + id));
 
+        validatePartnership(partnership); // Validate the partnership before updating
+
         // Update fields
         existingPartnership.setPartnershipStatus(partnership.getPartnershipStatus());
         existingPartnership.setEntreprise(partnership.getEntreprise());
@@ -79,7 +121,6 @@ public class PartnershipService implements IPartnershipService {
         partnershipRepository.deleteAll();
     }
 
-
     public Partnership applyForPartnership(int entrepriseId, int proposalId) {
         Entreprise entreprise = entrepriseRepository.findById(entrepriseId)
                 .orElseThrow(() -> new EntityNotFoundException("Entreprise not found with id " + entrepriseId));
@@ -87,12 +128,12 @@ public class PartnershipService implements IPartnershipService {
         Proposal proposal = proposalRepository.findById(proposalId)
                 .orElseThrow(() -> new EntityNotFoundException("Proposal not found with id " + proposalId));
 
-        //  If the proposal is already "FULFILLED", block the application
+        // If the proposal is already "FULFILLED", block the application
         if (proposal.getProposalStatus().equals("FULFILLED")) {
             throw new IllegalStateException("This proposal has already been fulfilled. No more applications are allowed.");
         }
 
-        //  Check if any existing partnership for this proposal is already ACCEPTED
+        // Check if any existing partnership for this proposal is already ACCEPTED
         boolean isAccepted = partnershipRepository.existsByProposalIdProposalAndPartnershipStatus(proposalId, PartnershipStatus.Approved);
 
         if (isAccepted) {
@@ -102,7 +143,7 @@ public class PartnershipService implements IPartnershipService {
             throw new IllegalStateException("A partnership for this proposal has already been accepted. No further applications are allowed.");
         }
 
-        //  Create a new Partnership with status PENDING
+        // Create a new Partnership with status PENDING
         Partnership partnership = new Partnership();
         partnership.setEntreprise(entreprise);
         partnership.setProposals(proposal);
@@ -115,7 +156,6 @@ public class PartnershipService implements IPartnershipService {
     public void deleteExpiredPartnerships() {
         Date currentDate = new Date();
         List<Partnership> partnershipsToDelete = partnershipRepository.findByEndDateBefore(currentDate);
-
 
         // Delete the expired partnerships
         partnershipRepository.deleteAll(partnershipsToDelete);
@@ -162,171 +202,242 @@ public class PartnershipService implements IPartnershipService {
         proposalRepository.save(proposal);
     }
 
-
-    //api pdf
+    // Generate PDF for the Partnership
     public byte[] generatePdfForPartnership(Partnership partnership) {
         try (PDDocument document = new PDDocument()) {
             PDPage page = new PDPage(PDRectangle.A4);
             document.addPage(page);
 
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-                // Define fonts and sizes
+            try (PDPageContentStream content = new PDPageContentStream(document, page)) {
                 PDType1Font boldFont = PDType1Font.HELVETICA_BOLD;
                 PDType1Font regularFont = PDType1Font.HELVETICA;
-                int headerSize = 16;
-                int bodySize = 12;
-                int smallSize = 10;
 
                 float margin = 50;
-                float yStart = page.getMediaBox().getHeight() - margin;
-                float yPosition = yStart;
+                float width = page.getMediaBox().getWidth();
+                float height = page.getMediaBox().getHeight();
+                float y = height - margin;
 
-                // Title Section
-                contentStream.setFont(boldFont, headerSize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText("PARTNERSHIP CONTRACT");
-                contentStream.endText();
+                // Draw border
+                content.setStrokingColor(200, 200, 200); // light gray
+                content.addRect(margin - 10, margin - 10, width - 2 * (margin - 10), height - 2 * (margin - 10));
+                content.stroke();
 
-                yPosition -= 10;
-                contentStream.moveTo(margin, yPosition);
-                contentStream.lineTo(page.getMediaBox().getWidth() - margin, yPosition);
-                contentStream.stroke();
-                yPosition -= 20;
+                // Title
+                content.setNonStrokingColor(0, 0, 0);
+                content.setFont(boldFont, 26);
+                content.beginText();
+                content.newLineAtOffset(margin, y);
+                content.showText("PARTNERSHIP CONTRACT");
+                content.endText();
 
-                // Invoice To / Pay To
-                contentStream.setFont(boldFont, bodySize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText("Invoice To:");
-                contentStream.newLineAtOffset(250, 0);
-                contentStream.showText("Pay To:");
-                contentStream.endText();
-                yPosition -= 15;
+                // Contract No.
+                content.setFont(regularFont, 12);
+                content.beginText();
+                content.newLineAtOffset(width - margin - 100, y);
+                content.showText("No. " + String.format("%06d", partnership.getIdPartnership()));
+                content.endText();
 
-                contentStream.setFont(regularFont, smallSize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText(partnership.getEntreprise().getNameEntreprise());
-                contentStream.newLineAtOffset(250, 0);
-                contentStream.showText("ElevatED");
-                contentStream.endText();
-                yPosition -= 40;
+                y -= 40;
 
-                // start / end
-                contentStream.setFont(boldFont, bodySize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText("Start date:");
-                contentStream.newLineAtOffset(250, 0);
-                contentStream.showText("End date:");
-                contentStream.endText();
-                yPosition -= 15;
+                // Date
+                content.setFont(boldFont, 12);
+                content.beginText();
+                content.newLineAtOffset(margin, y);
+                content.showText("Date: ");
+                content.setFont(regularFont, 12);
+                content.showText(LocalDate.now().toString());
+                content.endText();
 
-                contentStream.setFont(regularFont, smallSize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText(partnership.getProposals().getStartDate().toString());
-                contentStream.newLineAtOffset(250, 0);
-                contentStream.showText(partnership.getProposals().getEndDate().toString());
-                contentStream.endText();
-                yPosition -= 40;
+                y -= 30;
 
-                // Table Headers
-                contentStream.setFont(boldFont, bodySize);
-                float[] colWidths = { 500}; // Column widths
-                String[] headers = { "Agreements"};
+                // Billed To and From
+                float colWidth = 250;
+                float gap = 40;
+                float leftX = margin;
+                float rightX = margin + colWidth + gap;
 
-                float tableWidth = colWidths[0];
-                float tableX = margin;
-                drawTableRow(contentStream, headers, tableX, yPosition, colWidths, boldFont, bodySize);
-                yPosition -= 20;
+                content.setFont(boldFont, 12);
+                content.beginText();
+                content.newLineAtOffset(leftX, y);
+                content.showText("Billed to:");
+                content.endText();
 
-                // Table Data (Example Data - You can fetch actual partnership details)
-                // Convert Set<String> to String[][]
-                //Set<String> agreementsSet = partnership.getProposals().getAgreements();
-                //List<String> agreementsList = new ArrayList<>(agreementsSet);
+                content.beginText();
+                content.newLineAtOffset(rightX, y);
+                content.showText("From:");
+                content.endText();
 
-                // Define the structure for the table
-                //String[][] items = new String[agreementsList.size()][1]; // One column per row
+                y -= 15;
+                content.setFont(regularFont, 10);
+                content.beginText();
+                content.newLineAtOffset(leftX, y);
+                content.showText(partnership.getEntreprise().getNameEntreprise());
+                content.endText();
 
-                // for (int i = 0; i < agreementsList.size(); i++) {
-                //    items[i][0] = agreementsList.get(i); // Each agreement is placed in a separate row
-                // }
+                content.beginText();
+                content.newLineAtOffset(rightX, y);
+                content.showText("Coding Factory");
+                content.endText();
 
-                // contentStream.setFont(regularFont, bodySize);
-                //for (String[] row : items) {
-                //     drawTableRow(contentStream, row, tableX, yPosition, colWidths, regularFont, bodySize);
-                // yPosition -= 20;
-                //  }
+                y -= 12;
+                content.beginText();
+                content.newLineAtOffset(leftX, y);
+                content.showText(partnership.getEntreprise().getEmailEntreprise());
+                content.endText();
 
-                // Payment Section
-                yPosition -= 30;
-                contentStream.setFont(boldFont, bodySize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText("Amount to pay : ");
-                contentStream.endText();
+                content.beginText();
+                content.newLineAtOffset(rightX, y);
+                content.showText("contact@codingfactory.com");
+                content.endText();
 
-                String plannedAmount = String.valueOf(partnership.getProposals().getPlannedAmount());
+                y -= 40;
 
-                yPosition -= 15;
-                contentStream.setFont(regularFont, bodySize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText(plannedAmount);
-                contentStream.endText();
+                // Table Header
+                content.setNonStrokingColor(230, 230, 230);
+                content.addRect(margin, y, width - 2 * margin, 20);
+                content.fill();
+                content.setNonStrokingColor(0, 0, 0);
 
-                yPosition -= 30;
+                content.setFont(boldFont, 12);
+                content.beginText();
+                content.newLineAtOffset(margin + 5, y + 5);
+                content.showText("Item");
+                content.newLineAtOffset(180, 0);
+                content.showText("Details");
+                content.newLineAtOffset(180, 0);
+                content.showText("Amount");
+                content.endText();
 
-                // Terms & Conditions
-                contentStream.setFont(boldFont, bodySize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText("Terms & Conditions:");
-                contentStream.endText();
+                y -= 25;
 
-                yPosition -= 15;
-                contentStream.setFont(regularFont, smallSize);
-                contentStream.beginText();
-                contentStream.newLineAtOffset(margin, yPosition);
-                contentStream.showText("- Any disputes must be resolved within 30 days.");
-                contentStream.newLineAtOffset(0, -12);
-                contentStream.showText("- Payment must be made within 15 days of invoice.");
-                contentStream.endText();
+                // Table rows
+                content.setFont(regularFont, 11);
+                content.beginText();
+                content.newLineAtOffset(margin + 5, y);
+                content.showText("Contract Period");
+                content.newLineAtOffset(180, 0);
+                content.showText(partnership.getProposals().getStartDate() + " to " + partnership.getProposals().getEndDate());
+                content.newLineAtOffset(180, 0);
+                content.showText("-");
+                content.endText();
+
+                y -= 20;
+                content.beginText();
+                content.newLineAtOffset(margin + 5, y);
+                content.showText("Planned Amount");
+                content.newLineAtOffset(180, 0);
+                content.showText("Agreed upon");
+                content.newLineAtOffset(180, 0);
+                content.showText(String.format("$%.2f", partnership.getProposals().getPlannedAmount()));
+                content.endText();
+
+                y -= 20;
+                content.beginText();
+                content.newLineAtOffset(margin + 5, y);
+                content.showText("Status");
+                content.newLineAtOffset(180, 0);
+                content.showText("-");
+                content.newLineAtOffset(180, 0);
+                content.showText(partnership.getPartnershipStatus().toString());
+                content.endText();
+
+                y -= 40;
+
+                // Total
+                content.setFont(boldFont, 12);
+                content.beginText();
+                content.newLineAtOffset(margin + 360, y);
+                content.showText("Total:");
+                content.endText();
+
+                content.beginText();
+                content.newLineAtOffset(margin + 450, y);
+                content.showText(String.format("$%.2f", partnership.getProposals().getPlannedAmount()));
+                content.endText();
+
+                y -= 40;
+
+                // Payment method and note
+                content.setFont(boldFont, 11);
+                content.beginText();
+                content.newLineAtOffset(margin, y);
+                content.showText("Payment method: ");
+                content.setFont(regularFont, 11);
+                content.showText("Bank Transfer");
+                content.endText();
+
+                y -= 15;
+                content.setFont(boldFont, 11);
+                content.beginText();
+                content.newLineAtOffset(margin, y);
+                content.showText("Note: ");
+                content.setFont(regularFont, 11);
+                content.showText("We appreciate your collaboration.");
+                content.endText();
+
+                y -= 40;
+
+                // Agreements
+                content.setFont(boldFont, 12);
+                content.setNonStrokingColor(70, 130, 180); // steel blue
+                content.beginText();
+                content.newLineAtOffset(margin, y);
+                content.showText("Agreements:");
+                content.endText();
+                content.setNonStrokingColor(0, 0, 0);
+
+                y -= 20;
+                String[] agreements = {
+                        "• All information exchanged must remain confidential.",
+                        "• Payment must be made within 15 business days after invoice date.",
+                        "• Disputes will be handled in good faith within 30 working days."
+                };
+
+                content.setFont(regularFont, 11);
+                for (String ag : agreements) {
+                    content.beginText();
+                    content.newLineAtOffset(margin + 10, y);
+                    content.showText(ag);
+                    content.endText();
+                    y -= 15;
+                }
+
+                y -= 50;
+
+                // Signature Section
+                content.setFont(boldFont, 12);
+                content.beginText();
+                content.newLineAtOffset(margin, y);
+                content.showText("Signature (Entreprise):");
+                content.endText();
+
+                content.beginText();
+                content.newLineAtOffset(width / 2 + 20, y);
+                content.showText("Signature (Coding Factory):");
+                content.endText();
+
+                // Signature Lines
+                y -= 30;
+                content.setStrokingColor(0, 0, 0);
+                content.moveTo(margin, y);
+                content.lineTo(margin + 200, y);
+                content.stroke();
+
+                content.moveTo(width / 2 + 20, y);
+                content.lineTo(width / 2 + 220, y);
+                content.stroke();
             }
 
-            // Save and return PDF
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            document.save(byteArrayOutputStream);
-            return byteArrayOutputStream.toByteArray();
-
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            document.save(out);
+            return out.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
         }
     }
 
-    private void drawTableRow(PDPageContentStream contentStream, String[] row, float x, float y, float[] colWidths, PDType1Font font, int fontSize) throws IOException {
-        float cellHeight = 15;
-        contentStream.setFont(font, fontSize);
-
-        for (int i = 0; i < row.length; i++) {
-            contentStream.beginText();
-            contentStream.newLineAtOffset(x, y);
-            contentStream.showText(row[i]);
-            contentStream.endText();
-            x += colWidths[i];
-        }
-
-        // Draw table row border
-        contentStream.moveTo(x - sum(colWidths), y - 2);
-        contentStream.lineTo(x, y - 2);
-        contentStream.stroke();
+    public List<Partnership> getPartnershipsForEntreprise(int entrepriseId) {
+        return partnershipRepository.findByEntrepriseIdEntreprise(entrepriseId);  // Fetch partnerships by Entreprise ID
     }
 
-    private float sum(float[] arr) {
-        float sum = 0;
-        for (float v : arr) sum += v;
-        return sum;
-    }
 }

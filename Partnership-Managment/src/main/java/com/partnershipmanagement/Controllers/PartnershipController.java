@@ -1,6 +1,7 @@
 package com.partnershipmanagement.Controllers;
 
 import com.partnershipmanagement.Entities.Partnership;
+import com.partnershipmanagement.Entities.Proposal;
 import com.partnershipmanagement.Services.PartnershipService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,14 @@ public class PartnershipController {
     public ResponseEntity<Partnership> createPartnership(@RequestBody Partnership partnership) {
         Partnership newPartnership = partnershipService.createPartnership(partnership);
         return ResponseEntity.ok(newPartnership);
+    }
+
+    @PostMapping("/addPartnershipByEntrepriseName")
+    public ResponseEntity<Partnership> addPartnershipByEntrepriseName(
+            @RequestParam String nameEntreprise,
+            @RequestBody Proposal proposal) {
+        Partnership partnership = partnershipService.addPartnershipByEntrepriseName(nameEntreprise, proposal);
+        return ResponseEntity.ok(partnership);
     }
 
     // Get a partnership by ID
@@ -189,5 +198,14 @@ public class PartnershipController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to generate PDF: " + e.getMessage());
         }
+    }
+    @GetMapping("/entreprises/{entrepriseId}/partnerships")
+    public ResponseEntity<List<Partnership>> getPartnershipsForEntreprise(@PathVariable int entrepriseId) {
+        List<Partnership> partnerships = partnershipService.getPartnershipsForEntreprise(entrepriseId);
+
+        if (partnerships.isEmpty()) {
+            return ResponseEntity.status(404).body(null); // 404 Not Found if no partnerships are found
+        }
+        return ResponseEntity.ok(partnerships); // Return the partnerships with 200 OK status
     }
 }

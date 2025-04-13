@@ -25,7 +25,7 @@ public class Entreprise {
     String phoneEntreprise;
     String emailEntreprise;
     String descriptionEntreprise;
-
+    float scoreEntreprise;
     @JsonIgnore
     @OneToOne
     User partner;
@@ -33,6 +33,7 @@ public class Entreprise {
     @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy="entreprise")
     private List<Partnership> partnerships;
+
 
 
 }
