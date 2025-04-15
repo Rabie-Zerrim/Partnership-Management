@@ -22,6 +22,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     Role role;
 
-
+//role to set instead of enum
 }
 
