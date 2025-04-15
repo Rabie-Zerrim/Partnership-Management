@@ -61,6 +61,8 @@ public class AssessmentController {
         return ResponseEntity.noContent().build();
     }
 
+    //two ways approval - admin part
+
     @PutMapping("/{id}/update-status-admin")
     public Assessment updateStatusAdmin(@PathVariable int id, @RequestParam AcceptanceStatus status) {
 

@@ -70,6 +70,7 @@ public class AssessmentService {
         assessmentRepository.deleteAll();
     }
 
+   //Allow one time approval
     public Assessment updateStatusAdmin(int id, AcceptanceStatus status) {
         Assessment assessment = assessmentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Assessment not found with id: " + id));
