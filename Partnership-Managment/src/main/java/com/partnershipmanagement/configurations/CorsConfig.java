@@ -23,5 +23,7 @@ public class CorsConfig {
 
         return new CorsFilter(source);
     }//cors intergration for MS
+
+    //testing the api's
 }
 
