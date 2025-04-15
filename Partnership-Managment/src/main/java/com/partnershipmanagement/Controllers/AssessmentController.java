@@ -69,6 +69,8 @@ public class AssessmentController {
         return assessmentService.updateStatusAdmin(id, status);
     }
 
+
+    //partner check approval
     @PutMapping("/{id}/update-status-partner")
     public Assessment updateStatusPartner(@PathVariable int id, @RequestParam AcceptanceStatus status) {
 
