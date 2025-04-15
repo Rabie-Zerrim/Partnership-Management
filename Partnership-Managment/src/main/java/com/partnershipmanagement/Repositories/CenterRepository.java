@@ -9,3 +9,4 @@ public interface CenterRepository extends JpaRepository<Center, Integer> {
     @Query("SELECT c FROM Center c WHERE c.nameCenter = :nameCenter")
     Center findByName(@Param("nameCenter") String name);
 }
+//repositories check
