@@ -1,1 +1,1 @@
-//Mailing template enhancemnts
+//Mailing template enhancemnt
