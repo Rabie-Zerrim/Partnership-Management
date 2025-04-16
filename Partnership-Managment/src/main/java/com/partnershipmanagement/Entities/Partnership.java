@@ -24,6 +24,8 @@ public class Partnership {
     @Enumerated(EnumType.STRING)
     PartnershipStatus partnershipStatus;
 
+    float score;
+
     public void setPartnershipStatus(PartnershipStatus partnershipStatus) {
         this.partnershipStatus = partnershipStatus;
     }

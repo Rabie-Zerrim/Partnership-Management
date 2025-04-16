@@ -1,15 +1,14 @@
 package com.partnershipmanagement.Services;
 
-import com.partnershipmanagement.Entities.AcceptanceStatus;
-import com.partnershipmanagement.Entities.Assessment;
-import com.partnershipmanagement.Entities.Partnership;
-import com.partnershipmanagement.Entities.Status;
+import com.partnershipmanagement.Entities.*;
 import com.partnershipmanagement.Repositories.AssessmentRepository;
 import com.partnershipmanagement.Repositories.PartnershipRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -31,6 +30,7 @@ public class AssessmentService {
         assessment.setAdminAcceptance(false);
         assessment.setPartnership(partnership); // Set the Partnership for this assessment
 
+        setPartnershipScore(assessment.getPartnership().getIdPartnership());
         return assessmentRepository.save(assessment);
     }
 
@@ -45,7 +45,12 @@ public class AssessmentService {
         return assessmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Assessment not found with id: " + id));
     }
-
+    public List<Assessment> getAssessmentsByPartnershipId(int partnershipId) {
+        if (!partnershipRepository.existsById(partnershipId)) {
+            throw new EntityNotFoundException("Partnership not found with id: " + partnershipId);
+        }
+        return assessmentRepository.findByPartnershipId(partnershipId);
+    }
     // Update an assessment
     public Assessment updateAssessment(int id, Assessment assessmentDetails) {
         return assessmentRepository.findById(id)
@@ -121,5 +126,55 @@ public class AssessmentService {
         return assessmentRepository.save(assessment);
     }
 
+    public Assessment markAsCompleted(int id) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Assessment not found with id: " + id));
+
+        Proposal proposal = assessment.getPartnership().getProposals();
+        LocalDate now = LocalDate.now();
+        LocalDate endDate = proposal.getEndDate().toLocalDate();
+
+        if (now.isBefore(endDate)) {
+            assessment.setStatus(Status.Done);
+            long totalDays = ChronoUnit.DAYS.between(now, endDate);
+            if (totalDays >= 10) {
+                assessment.setScore(5);
+            } else if (totalDays >= 7) {
+                assessment.setScore(4);
+            } else if (totalDays >= 4) {
+                assessment.setScore(3);
+            } else if (totalDays >= 1) {
+                assessment.setScore(2);
+            } else {
+                assessment.setScore(1);
+            }
+        } else {
+            assessment.setStatus(Status.Undone);
+            assessment.setScore(0);
+        }
+
+        Assessment saved = assessmentRepository.save(assessment);
+        //return assessmentRepository.save(assessment);
+        setPartnershipScore(assessment.getPartnership().getIdPartnership());
+        return saved;
+    }
+    public void setPartnershipScore(int partnershipId) {
+        Partnership partnership = partnershipRepository.findById(partnershipId)
+                .orElseThrow(() -> new RuntimeException("Partnership not found with id: " + partnershipId));
+
+        List<Assessment> assessments = assessmentRepository.findByPartnershipId(partnershipId);
+
+        if (assessments.isEmpty()) {
+            partnership.setScore(0f);
+        } else {
+            float avg = (float) assessments.stream()
+                    .mapToDouble(Assessment::getScore)
+                    .average()
+                    .orElse(0);
+            partnership.setScore(avg);
+        }
+
+        partnershipRepository.save(partnership);
+    }
 
 }

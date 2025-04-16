@@ -32,7 +32,10 @@ public class AssessmentController {
         List<Assessment> assessments = assessmentService.getAllAssessments();
         return ResponseEntity.ok(assessments);
     }
-
+    @GetMapping("/partnership/{partnershipId}")
+    public List<Assessment> getAssessmentsByPartnershipId(@PathVariable int partnershipId) {
+        return assessmentService.getAssessmentsByPartnershipId(partnershipId);
+    }
     // Get an assessment by ID
     @GetMapping("/{id}")
     public ResponseEntity<Assessment> getAssessmentById(@PathVariable int id) {
@@ -44,6 +47,12 @@ public class AssessmentController {
     @PutMapping("/update/{id}")
     public ResponseEntity<Assessment> updateAssessment(@PathVariable int id, @RequestBody Assessment assessment) {
         Assessment updatedAssessment = assessmentService.updateAssessment(id, assessment);
+        return ResponseEntity.ok(updatedAssessment);
+    }
+
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<Assessment> markAsCompleted(@PathVariable int id) {
+        Assessment updatedAssessment = assessmentService.markAsCompleted(id);
         return ResponseEntity.ok(updatedAssessment);
     }
 
