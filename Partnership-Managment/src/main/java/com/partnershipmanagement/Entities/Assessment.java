@@ -36,4 +36,4 @@ public class Assessment {
     @ManyToOne
     Partnership partnership;
 }
-//acceptance functionality enhancments
+//acceptance functionality Enhancements
