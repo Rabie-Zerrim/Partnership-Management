@@ -11,3 +11,4 @@ public interface EntrepriseRepository extends JpaRepository<Entreprise,Integer> 
     Entreprise findByName(@Param("nameEntreprise") String name);
 
 }
+//entreprise dto integration
