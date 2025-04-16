@@ -23,5 +23,7 @@ public class User {
     Role role;
 
 //role to set instead of enum
+
+    //using data transfer object dto instead of user entity
 }
 
