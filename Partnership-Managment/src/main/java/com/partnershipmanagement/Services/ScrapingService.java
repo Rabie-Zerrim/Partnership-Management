@@ -46,7 +46,7 @@ public class ScrapingService {
                 Map.entry("customer", 14),
                 Map.entry("training", 17)
         );
-
+//adding scraping keyword weight for better % results
 
         int maxPossibleWeight = keywords.values().stream().mapToInt(i -> i).sum();
 
